@@ -3,14 +3,14 @@ package utils;
 import entity.Node;
 import entity.Task;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Energy {
     private double applicationEnergyConstraint;
     private Map<Integer, Task> taskMap;
     private Map<Integer, Node> nodeMap;
+    private LinkedList<Integer> taskQue = new LinkedList<>();
     /**
      * 计算所有的任务能耗约束
      * @param applicationEnergyConstraint
@@ -21,14 +21,21 @@ public class Energy {
         this.applicationEnergyConstraint = applicationEnergyConstraint;
         // 这里将整个map重新拷贝 否则会因为下面的函数重复集合调用而导致死循环
         this.taskMap = new LinkedHashMap<>(taskMap);
+        taskMap.forEach((taskId, task) -> taskQue.add(taskId));
         this.nodeMap = nodeMap;
         // 任务在不同节点上以最小频率执行的能耗值取最小作为预分配能耗
-        // 为每个task计算minEnergy
-        taskMap.forEach((taskId, task) -> calculateTaskMinPreEnergy(task));
+        // 为每个task计算minEnergy,maxEnergyConstraint
+        System.out.println("----------------------- 任务的能耗约束值 -------------------------");
+        taskMap.forEach((taskId, task) -> {
+            calculateTaskMinPreEnergy(task);
+            System.out.print(taskId+": "+String.format("%.2f",task.getMinPreEnergy()) + "    ");
+        });
+        taskMap.forEach((taskId, task) -> calculateTaskMaxPreEnergy(task));
         // 再重新计算实际能耗约束并设置属性值
         taskMap.forEach((taskId, task) -> calculateTaskRealEnergyConstraint(task));
         // 输出结果
-        taskMap.forEach((id, t) -> System.out.print("任务Id:"+t.getId() + "-能耗约束值:" + t.getEnergyConstraint() + "\t"));
+        System.out.println();
+        taskMap.forEach((id, t) -> System.out.print(t.getId() + ": " + String.format("%.2f",t.getEnergyConstraint()) + "    "));
         System.out.println();
     }
 
@@ -38,16 +45,27 @@ public class Energy {
      */
     private void calculateTaskRealEnergyConstraint(Task task) {
         double realEnergyConstraintSum=0, preMinEnergyConstraintSum=0;
-        // 计算任务i以前的任务集合的真实能耗
-        for (int i = 1; i <= task.getId()-1 ; i++) {
-            realEnergyConstraintSum+=taskMap.get(i).getEnergyConstraint();
+//        // 计算任务i以前的任务集合的真实能耗
+//        for (int i = 1; i <= task.getId()-1 ; i++) {
+//            realEnergyConstraintSum+=taskMap.get(i).getEnergyConstraint();
+//        }
+//        // 计算任务i以后的任务集合的预分配能耗
+//        for (int i = task.getId()+1; i <= taskMap.size() ; i++) {
+//            preMinEnergyConstraintSum+=taskMap.get(i).getMinPreEnergy();
+//        }
+        int index=0;    // 记录当前task的下标
+        for (int i = 0; taskQue.get(i) != task.getId(); index=++i) {
+            realEnergyConstraintSum+=taskMap.get(taskQue.get(i)).getEnergyConstraint();
         }
-        // 计算任务i以后的任务集合的预分配能耗
-        for (int i = task.getId()+1; i <= taskMap.size() ; i++) {
-            preMinEnergyConstraintSum+=taskMap.get(i).getMinPreEnergy();
+        for (int i = index+1; i<taskQue.size(); i++) {
+            preMinEnergyConstraintSum+=taskMap.get(taskQue.get(i)).getMinPreEnergy();
         }
+
         // 计算任务i的能耗约束
         double energyConstraint = applicationEnergyConstraint - realEnergyConstraintSum - preMinEnergyConstraintSum;
+        // 设置能耗约束在规定范围内
+        energyConstraint = Math.max(task.getMinPreEnergy(), energyConstraint);
+        energyConstraint = Math.min(task.getMaxPreEnergy(), energyConstraint);
         task.setEnergyConstraint(energyConstraint);
     }
 
@@ -57,9 +75,23 @@ public class Energy {
      */
     private void calculateTaskMinPreEnergy(Task task) {
         AtomicReference<Double> minPreEnergy= new AtomicReference<>(Double.MAX_VALUE);
-        // 计算任务在哪个节点上的能耗最小
-        nodeMap.forEach((nodeId, node) -> minPreEnergy.set(Math.min(minPreEnergy.get(), calculateTaskEnergy(task, node, node.getMinFrequency()))));
+        nodeMap.forEach((nodeId, node) -> {
+            double fee = Math.sqrt(node.getPind() / ((node.getM() - 1) * node.getCef())) * node.getM();
+//            minPreEnergy.set(Math.min(minPreEnergy.get(), calculateTaskEnergy(task, node, Math.max(fee, node.getMinFrequency()))));
+//            minPreEnergy.set(Math.min(minPreEnergy.get(), calculateTaskEnergy(task, node, fee)));
+            minPreEnergy.set(Math.min(minPreEnergy.get(), calculateTaskEnergy(task, node, node.getMinFrequency())));
+        });
         task.setMinPreEnergy(minPreEnergy.get());
+    }
+
+    /**
+     * 计算任务最大预分配能耗
+     * @param task
+     */
+    private void calculateTaskMaxPreEnergy(Task task) {
+        AtomicReference<Double> maxPreEnergy= new AtomicReference<>(Double.MIN_VALUE);
+        nodeMap.forEach((nodeId, node) -> maxPreEnergy.set(Math.max(maxPreEnergy.get(), calculateTaskEnergy(task, node, node.getMaxFrequency()))));
+        task.setMaxPreEnergy(maxPreEnergy.get());
     }
 
     /**
@@ -69,7 +101,7 @@ public class Energy {
         // E = P * w *  fmax/f
         // P = (Pk,ind + Ck,ef × (fk,h)^mk)
         double P = node.getPind() + node.getCef() * Math.pow(frequency, node.getM());
-        return P * Task.EXECUTION_TIME[task.getId()][node.getId()] * node.getMaxFrequency()/ frequency;
+        return P * Task.EXECUTION_TIME[task.getId()][node.getId()] * node.getMaxFrequency() / frequency;
     }
 
 }

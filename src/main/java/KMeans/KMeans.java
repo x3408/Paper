@@ -65,7 +65,6 @@ public class KMeans {
             }
         }
         show(centerPoints, clusters);
-        System.out.println("--------------------------------------------------------------");
     }
 
     //计算点对应的中心点，并将该点划分到距离最近的中心点的簇中
