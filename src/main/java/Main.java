@@ -18,7 +18,7 @@ public class Main {
 
     private static final Map<Integer, Task> taskMap = new LinkedHashMap<>(16, 0.75f, true);  // 任务需要有序
     private static final Map<Integer, Node> nodeMap = new HashMap<>();
-    private static final IDirectGraph<Task> directGraph = new ListDirectGraph<>();
+    private static final IDirectGraph<Task> directGraph = new ListDirectGraph<>();  // 按任务id-1作为下标存放
 
     public static void main(String[] args) {
         // 初始化
@@ -31,12 +31,9 @@ public class Main {
         // 计算子任务能耗约束
         Energy energy = new Energy();
         energy.calculateTaskEnergyConstraint(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap);
-        // 计算任务在不同处理器上的执行能耗、EFT
-
-        // 满足要求添加到map中
-
-        // 选择执行w最小的VM执行并计算AFT
-
+        // 计算任务在不同处理器的不同频率上的执行能耗，满足条件后再计算EFT
+        Node node = new Node();
+        node.getSuitableNode(taskMap, nodeMap, directGraph);
         // 计算调度时间SL(G)、E(G)
     }
 
@@ -189,14 +186,14 @@ public class Main {
         // 初始化虚拟机性能
 //        for (int i = 1; i <= NODE_NUM; i++) {
 //            // 这里测试同构集群
-//            Node node = new Node(i, 0.26, 1, 0.1, 0.01, 0.03, 0.8, 2.9);
+//            Node node = new Node(i, 0.26, 1, 0.26, 0.01, 0, 0.03, 0.8, 2.9);
 //            // 添加到DAG中获得优先级
 //            nodeMap.put(i, node);
 //        }
 
-        Node node1 = new Node(1, 0.26, 1, 0.26, 0.01, 0.03, 0.8, 2.9);
-        Node node2 = new Node(2, 0.26, 1, 0.26, 0.01, 0.04, 0.8, 2.5);
-        Node node3 = new Node(3, 0.29, 1, 0.29, 0.01, 0.07, 1.0, 2.5);
+        Node node1 = new Node(1, 0.26, 1, 0.26, 0.01, 0, 0.03, 0.8, 2.9);
+        Node node2 = new Node(2, 0.26, 1, 0.26, 0.01, 0, 0.04, 0.8, 2.5);
+        Node node3 = new Node(3, 0.29, 1, 0.29, 0.01, 0, 0.07, 1.0, 2.5);
         nodeMap.put(1, node1);
         nodeMap.put(2, node2);
         nodeMap.put(3, node3);

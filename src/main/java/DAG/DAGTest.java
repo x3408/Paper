@@ -32,6 +32,6 @@ public class DAGTest {
         directGraph.addEdge(new Edge<>("8", "10",1));
         directGraph.addEdge(new Edge<>("9", "10",1));
 
-        System.out.println(directGraph.dfs("1").toString());
+        System.out.println(directGraph.getPredecessor("10"));
     }
 }

@@ -141,7 +141,6 @@ public class ListDirectGraph<V> implements IDirectGraph<V> {
     @Override
     public List<V> getSucceed(V v) {
         ArrayList<V> res = new ArrayList<>();
-
         GraphNode<V> node = getGraphNode(v);
         if (null == node) return null;
 
@@ -149,5 +148,36 @@ public class ListDirectGraph<V> implements IDirectGraph<V> {
             res.add(edge.getTo());
         }
         return res;
+    }
+
+    /**
+     * 获取以目标节点的前任节点
+     */
+    @Override
+    public Set<V> getPredecessor(V v) {
+        GraphNode<V> node = getGraphNode(v);
+        if (null == node) return null;
+
+        V root = nodeList.get(0).getVertex();
+        // 通过广度遍历节点 判断其后继节点是否为目标节点并添加到集合中
+        return getPredecessor(root, v);
+    }
+
+
+    private Set<V> getPredecessor(V root, V v) {
+        HashSet<V> set = new HashSet<>();
+        LinkedList<V> que = new LinkedList<>();
+        que.offer(root);
+        while (que.size()!=0) {
+            int count = que.size();
+            for (int i=1; i<=count; i++) {
+                V node = que.poll();
+                for (V succeed : getSucceed(node)) {
+                    if (succeed.equals(v)) set.add(node);
+                    que.add(succeed);
+                }
+            }
+        }
+        return set;
     }
 }

@@ -1,6 +1,7 @@
 package DAG;
 
 import java.util.List;
+import java.util.Set;
 
 public interface IDirectGraph<V> {
 
@@ -47,4 +48,5 @@ public interface IDirectGraph<V> {
 
     List<V> getSucceed(final V v);  // 获取顶点的所有后继节点
 
+    Set<V> getPredecessor(final V v);  // 获得顶点的前序节点
 }

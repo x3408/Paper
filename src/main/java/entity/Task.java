@@ -16,6 +16,7 @@ public class Task {
     private double minPreEnergy;                        // 任务最小预分配能耗
     private double maxPreEnergy;                        // 任务最大预分配能耗
     private double energyConstraint;                    // 任务能耗约束
+    private double EFT;                                 // 任务最早结束时间
 
     public static double[][] EXECUTION_TIME;
 
