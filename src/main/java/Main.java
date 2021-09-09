@@ -20,6 +20,8 @@ public class Main {
     private static final Map<Integer, Node> nodeMap = new HashMap<>();
     private static final IDirectGraph<Task> directGraph = new ListDirectGraph<>();  // 按任务id-1作为下标存放
 
+    public static double applicationEnergy;
+    public static double applicationScheduleLength;
     public static void main(String[] args) {
         // 初始化
         initTaskAndDAG();
@@ -35,6 +37,26 @@ public class Main {
         Node node = new Node();
         node.getSuitableNode(taskMap, nodeMap, directGraph);
         // 计算调度时间SL(G)、E(G)
+        calculateApplicationEnergyConsumption();
+        calculateApplicationScheduleLength();
+    }
+
+    private static void calculateApplicationScheduleLength() {
+        applicationScheduleLength = taskMap.get(taskMap.size()).getEFT() - taskMap.get(1).getEFT();
+        System.out.println("------------------------ 全局调度长度 ---------------------------");
+        System.out.println("应用最终调度长度: " + applicationScheduleLength);
+    }
+
+    private static void calculateApplicationEnergyConsumption() {
+        System.out.println("------------------------ 全局能耗 ------------------------------");
+        taskMap.forEach((taskId, task) -> {
+            System.out.print(taskId + ": " + String.format("%.2f",task.getFinalEnergy())+ "  ");
+            System.out.print("频率："+taskId + ": " + String.format("%.2f",task.getFrequency())+ "  ");
+            System.out.println();
+            applicationEnergy += task.getFinalEnergy();
+        });
+        System.out.println();
+        System.out.println("能耗上限: "+ APPLICATION_ENERGY_CONSTRAINT+ "\t应用最终能耗: " +applicationEnergy);
     }
 
     /**
@@ -191,9 +213,9 @@ public class Main {
 //            nodeMap.put(i, node);
 //        }
 
-        Node node1 = new Node(1, 0.26, 1, 0.26, 0.01, 0, 0.03, 0.8, 2.9);
-        Node node2 = new Node(2, 0.26, 1, 0.26, 0.01, 0, 0.04, 0.8, 2.5);
-        Node node3 = new Node(3, 0.29, 1, 0.29, 0.01, 0, 0.07, 1.0, 2.5);
+        Node node1 = new Node(1, 0.26, 1, 0.01, 0, 0.03, 0.8, 2.9);
+        Node node2 = new Node(2, 0.26, 1, 0.01, 0, 0.04, 0.8, 2.5);
+        Node node3 = new Node(3, 0.29, 1, 0.01, 0, 0.07, 1.0, 2.5);
         nodeMap.put(1, node1);
         nodeMap.put(2, node2);
         nodeMap.put(3, node3);

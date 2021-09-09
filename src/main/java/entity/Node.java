@@ -16,7 +16,6 @@ public class Node {
      private int id;
      private double minFrequency;
      private double maxFrequency;
-     private double curFrequency;
      private double accuracy;
      private double availableTime;
 
@@ -26,9 +25,9 @@ public class Node {
 
      public void getSuitableNode(Map<Integer, Task> taskMap, Map<Integer, Node> nodeMap, IDirectGraph<Task> directGraph) {
           System.out.println("----------------------  任务执行EFT -----------------------------");
-          double AFT = Double.MAX_VALUE;
-          double EFT = Double.MAX_VALUE;
           for (Map.Entry<Integer,Task> taskEntry : taskMap.entrySet()) {
+               double AFT = Double.MAX_VALUE;
+               double EFT = Double.MAX_VALUE;
                Task task = taskEntry.getValue();
                for (Map.Entry<Integer,Node> nodeEntry : nodeMap.entrySet()) {
                     Node node = nodeEntry.getValue();
@@ -41,10 +40,15 @@ public class Node {
                          // 若EFT小于AFT 则任务选择在该节点上执行
                          if (EFT < AFT) {
                               AFT = EFT;
+                              task.setExecuteNode(node);
+                              task.setEFT(AFT);
+                              node.setAvailableTime(AFT);
+                              task.setFrequency(frequency);
+                              task.setFinalEnergy(realEnergy);
                          }
                     }
                }
-               System.out.print(task.getId() + ": " + String.format("%.2f", task.getEFT()) + "  ");
+               System.out.print("task:"+task.getId() + " node: " + task.getExecuteNode().getId()+ " EFT:" + String.format("%.2f", task.getEFT()) + "   ");
           }
           System.out.println();
      }

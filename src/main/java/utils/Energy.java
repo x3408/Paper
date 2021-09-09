@@ -28,12 +28,18 @@ public class Energy {
         System.out.println("----------------------- 任务的能耗约束值 -------------------------");
         taskMap.forEach((taskId, task) -> {
             calculateTaskMinPreEnergy(task);
+            System.out.print("minEnergy: ");
             System.out.print(taskId+": "+String.format("%.2f",task.getMinPreEnergy()) + "    ");
         });
-        taskMap.forEach((taskId, task) -> calculateTaskMaxPreEnergy(task));
+        System.out.println();
+        taskMap.forEach((taskId, task) -> {
+            calculateTaskMaxPreEnergy(task);
+            System.out.print("maxEnergy: ");
+            System.out.print(taskId+": "+String.format("%.2f",task.getMaxPreEnergy()) + "    ");
+        });
         // 再重新计算实际能耗约束并设置属性值
         taskMap.forEach((taskId, task) -> calculateTaskRealEnergyConstraint(task));
-        // 输出结果
+        // 输出实际任务能耗限制结果
         System.out.println();
         taskMap.forEach((id, t) -> System.out.print(t.getId() + ": " + String.format("%.2f",t.getEnergyConstraint()) + "    "));
         System.out.println();
@@ -91,6 +97,10 @@ public class Energy {
     private void calculateTaskMaxPreEnergy(Task task) {
         AtomicReference<Double> maxPreEnergy= new AtomicReference<>(Double.MIN_VALUE);
         nodeMap.forEach((nodeId, node) -> maxPreEnergy.set(Math.max(maxPreEnergy.get(), calculateTaskEnergy(task, node, node.getMaxFrequency()))));
+//        nodeMap.forEach((nodeId, node) -> {
+//            double fee = Math.sqrt(node.getPind() / ((node.getM() - 1) * node.getCef())) * node.getM();
+//            maxPreEnergy.set(Math.max(maxPreEnergy.get(), calculateTaskEnergy(task, node, fee)));
+//        });
         task.setMaxPreEnergy(maxPreEnergy.get());
     }
 
@@ -98,10 +108,10 @@ public class Energy {
      * 计算任务能耗
      */
     public static double calculateTaskEnergy(Task task, Node node, double frequency) {
-        // E = P * w *  fmax/f
         // P = (Pk,ind + Ck,ef × (fk,h)^mk)
+        // E = P * w *  fmax/f
         double P = node.getPind() + node.getCef() * Math.pow(frequency, node.getM());
-        return P * Task.EXECUTION_TIME[task.getId()][node.getId()] * node.getMaxFrequency() / frequency;
+        return P * Task.EXECUTION_TIME[task.getId()][node.getId()] * (node.getMaxFrequency() / frequency);
     }
 
 }

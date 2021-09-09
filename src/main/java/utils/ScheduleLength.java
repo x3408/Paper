@@ -10,11 +10,8 @@ public class ScheduleLength {
 
     public static double calculateEarlierFinishTime(Task task, Node node, double frequency, IDirectGraph<Task> directGraph) {
         double EST = calculateEarlierStartTime(task, node, directGraph);
-        double EFT = EST + Task.EXECUTION_TIME[task.getId()][node.getId()] * node.getMaxFrequency() / frequency;
-        node.setAvailableTime(EFT);
-        task.setEFT(EFT);
 
-        return EFT;
+        return EST + Task.EXECUTION_TIME[task.getId()][node.getId()] * node.getMaxFrequency() / frequency;
     }
 
     public static double calculateEarlierStartTime(Task task, Node node, IDirectGraph<Task> directGraph) {
