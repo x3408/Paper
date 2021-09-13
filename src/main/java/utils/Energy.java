@@ -62,6 +62,8 @@ public class Energy {
         int index=0;    // 记录当前task的下标
         for (int i = 0; taskQue.get(i) != task.getId(); index=++i) {
             realEnergyConstraintSum+=taskMap.get(taskQue.get(i)).getEnergyConstraint();
+//            realEnergyConstraintSum+=taskMap.get(taskQue.get(i)).getMaxPreEnergy()*0.75;
+//            realEnergyConstraintSum+=taskMap.get(taskQue.get(i)).getMinPreEnergy();
         }
         for (int i = index+1; i<taskQue.size(); i++) {
             preMinEnergyConstraintSum+=taskMap.get(taskQue.get(i)).getMinPreEnergy();

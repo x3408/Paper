@@ -42,7 +42,7 @@ public class Main {
     }
 
     private static void calculateApplicationScheduleLength() {
-        applicationScheduleLength = taskMap.get(taskMap.size()).getEFT() - taskMap.get(1).getEFT();
+        applicationScheduleLength = taskMap.get(taskMap.size()).getEFT();
         System.out.println("------------------------ 全局调度长度 ---------------------------");
         System.out.println("应用最终调度长度: " + applicationScheduleLength);
     }
