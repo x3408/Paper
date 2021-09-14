@@ -1,15 +1,17 @@
 import DAG.Edge;
 import DAG.IDirectGraph;
 import DAG.ListDirectGraph;
-import KMeans.KMeans;
 import entity.Node;
 import entity.Task;
 import utils.Energy;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class Main {
-    public static final double APPLICATION_ENERGY_CONSTRAINT=80.995;
+    public static final BigDecimal APPLICATION_ENERGY_CONSTRAINT= new BigDecimal("80.995");
 
     public static final int TASK_NUM = 10;
     public static final int NODE_NUM = 3;
@@ -20,8 +22,8 @@ public class Main {
     private static final Map<Integer, Node> nodeMap = new HashMap<>();
     private static final IDirectGraph<Task> directGraph = new ListDirectGraph<>();  // 按任务id-1作为下标存放
 
-    public static double applicationEnergy;
-    public static double applicationScheduleLength;
+    public static BigDecimal applicationEnergy = new BigDecimal("0");
+    public static BigDecimal applicationScheduleLength = new BigDecimal("0");
     public static void main(String[] args) {
         // 初始化
         initTaskAndDAG();
@@ -29,60 +31,70 @@ public class Main {
         // 将任务排序
         OrderTasks();
         // 将任务分类
-        new KMeans(taskMap, 3).doKMeans();
+//        new KMeans(taskMap, 3).doKMeans();
         // 计算子任务能耗约束
         Energy energy = new Energy();
-        energy.calculateTaskEnergyConstraint(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap);
+//        energy.calculateTaskEnergyConstraint(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap);
+        energy.calculateTaskPreEnergy(taskMap, nodeMap);
         // 计算任务在不同处理器的不同频率上的执行能耗，满足条件后再计算EFT
         Node node = new Node();
-        node.getSuitableNode(taskMap, nodeMap, directGraph);
+//        node.getSuitableNode(taskMap, nodeMap, directGraph);
+        node.getSuitableNodeforTask(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap, directGraph);
         // 计算调度时间SL(G)、E(G)
         calculateApplicationEnergyConsumption();
         calculateApplicationScheduleLength();
     }
 
     private static void calculateApplicationScheduleLength() {
-        applicationScheduleLength = taskMap.get(taskMap.size()).getEFT();
         System.out.println("------------------------ 全局调度长度 ---------------------------");
-        System.out.println("应用最终调度长度: " + applicationScheduleLength);
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
+        applicationScheduleLength = taskMap.get(taskMap.size()).getEFT();
+        taskMap.forEach((taskId, task) -> System.out.print(decimalFormat.format(task.getEFT()) + "  "));
+        System.out.println();
+        System.out.println("应用最终调度长度: " + decimalFormat.format(applicationScheduleLength));
     }
 
     private static void calculateApplicationEnergyConsumption() {
+        System.out.println();
         System.out.println("------------------------ 全局能耗 ------------------------------");
+        System.out.print("能耗：");
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
         taskMap.forEach((taskId, task) -> {
-            System.out.print(taskId + ": " + String.format("%.2f",task.getFinalEnergy())+ "  ");
-            System.out.print("频率："+taskId + ": " + String.format("%.2f",task.getFrequency())+ "  ");
-            System.out.println();
-            applicationEnergy += task.getFinalEnergy();
+            System.out.print(task.getExecuteNode().getId() + ": " + decimalFormat.format(task.getFinalEnergy()) + "  ");
+            applicationEnergy = applicationEnergy.add(task.getFinalEnergy());
         });
         System.out.println();
-        System.out.println("能耗上限: "+ APPLICATION_ENERGY_CONSTRAINT+ "\t应用最终能耗: " +applicationEnergy);
+        System.out.print("频率：");
+        taskMap.forEach((taskId, task) -> {
+            System.out.print(taskId + ": " + task.getFrequency().setScale(2, RoundingMode.HALF_UP) + "  ");
+        });
+        System.out.println();
+        System.out.println("能耗上限: "+ APPLICATION_ENERGY_CONSTRAINT+ "\t应用最终能耗: " + decimalFormat.format(applicationEnergy));
     }
 
     /**
      * 根据优先级得分降序排序任务
      */
     public static void OrderTasks() {
-        List<Double> scoreRes = new ArrayList<>();
+        List<BigDecimal> scoreRes = new ArrayList<>();
 
         // 为每个任务设置平均执行时间
         for (int i = TASK_NUM; i>=1; i--) {
             Task task = taskMap.get(i);
-            double rankScore = calculatePriority(task);
+            BigDecimal rankScore = calculatePriority(task);
             scoreRes.add(rankScore);
         }
         Collections.reverse(scoreRes);
         System.out.println("-------------------- 任务得分(按下标输出） -----------------------");
-        scoreRes.forEach(score -> System.out.print(String.format("%.2f", score)+"\t"));
+        scoreRes.forEach(score -> System.out.print(score.setScale(1, RoundingMode.HALF_UP)+"\t"));
         System.out.println();
 
         // 重新排序
         List<Map.Entry<Integer, Task>> entries = new ArrayList<>(taskMap.entrySet());
         entries.sort((left, right) -> {
-            double res =  left.getValue().getRankScore() - right.getValue().getRankScore();
-            if (res < 0) return 1;
-            else if (res > 0) return -1;
-            else return 0;
+            BigDecimal res =  right.getValue().getRankScore().subtract(left.getValue().getRankScore());
+            if (res.intValue()==0) return -1;
+            return res.intValue();
         });
         taskMap.clear();
         for(Map.Entry<Integer, Task> e : entries) {
@@ -98,7 +110,7 @@ public class Main {
      * rank(n)= w + Math.max(c + rank(j))
      * @param task
      */
-    private static double calculatePriority(Task task) {
+    private static BigDecimal calculatePriority(Task task) {
         // exit任务的分数为平均执行时间
         if (task.getId()==TASK_NUM) {
             task.setRankScore(task.getAverageExecutionTime());
@@ -107,12 +119,12 @@ public class Main {
 
         // 平均执行时间+前驱节点中得分加通讯分数最大的
         // 1.获得后继节点的得分与通讯时间
-        double succeedScore=0;
+        BigDecimal succeedScore= new BigDecimal("0");
         for (Task succeed : directGraph.getSucceed(task)) {
-            double weight = directGraph.getEdge(task.getId()-1, succeed.getId()-1).getWeight();
-            succeedScore = Math.max(succeedScore, succeed.getRankScore()+weight);
+            BigDecimal weight = directGraph.getEdge(task.getId()-1, succeed.getId()-1).getWeight();
+            succeedScore = succeedScore.max(succeed.getRankScore().add(weight));
         }
-        double finalScore = task.getAverageExecutionTime() + succeedScore;
+        BigDecimal finalScore = task.getAverageExecutionTime().add(succeedScore);
         task.setRankScore(finalScore);
         return finalScore;
     }
@@ -138,69 +150,69 @@ public class Main {
 //        }
         // 使用论文中的demo
         Random random = new Random();
-        Task.EXECUTION_TIME = new double[TASK_NUM+1][NODE_NUM+1];
+        Task.EXECUTION_TIME = new BigDecimal[TASK_NUM+1][NODE_NUM+1];
         for (int i=1; i<=TASK_NUM; i++) {
-            Task task = Task.builder().id(i).cpu(random.nextDouble()*100).memory(random.nextDouble()*100).build();
+            Task task = Task.builder().id(i).cpu(BigDecimal.valueOf(random.nextDouble()*100)).memory(BigDecimal.valueOf(random.nextDouble()*100)).build();
             taskMap.put(i, task);
             directGraph.addVertex(task);
         }
-        taskMap.get(1).setAverageExecutionTime(13);
-        taskMap.get(2).setAverageExecutionTime(50f/3);
-        taskMap.get(3).setAverageExecutionTime(43f/3);
-        taskMap.get(4).setAverageExecutionTime(38f/3);
-        taskMap.get(5).setAverageExecutionTime(35f/3);
-        taskMap.get(6).setAverageExecutionTime(38f/3);
-        taskMap.get(7).setAverageExecutionTime(11);
-        taskMap.get(8).setAverageExecutionTime(10);
-        taskMap.get(9).setAverageExecutionTime(50f/3);
-        taskMap.get(10).setAverageExecutionTime(44f/3);
+        taskMap.get(1).setAverageExecutionTime(BigDecimal.valueOf(13));
+        taskMap.get(2).setAverageExecutionTime(BigDecimal.valueOf(50f/3));
+        taskMap.get(3).setAverageExecutionTime(BigDecimal.valueOf(43f/3));
+        taskMap.get(4).setAverageExecutionTime(BigDecimal.valueOf(38f/3));
+        taskMap.get(5).setAverageExecutionTime(BigDecimal.valueOf(35f/3));
+        taskMap.get(6).setAverageExecutionTime(BigDecimal.valueOf(38f/3));
+        taskMap.get(7).setAverageExecutionTime(BigDecimal.valueOf(11));
+        taskMap.get(8).setAverageExecutionTime(BigDecimal.valueOf(10));
+        taskMap.get(9).setAverageExecutionTime(BigDecimal.valueOf(50f/3));
+        taskMap.get(10).setAverageExecutionTime(BigDecimal.valueOf(44f/3));
 
-        Task.EXECUTION_TIME[1][1] = 14;
-        Task.EXECUTION_TIME[1][2] = 16;
-        Task.EXECUTION_TIME[1][3] = 9;
-        Task.EXECUTION_TIME[2][1] = 13;
-        Task.EXECUTION_TIME[2][2] = 19;
-        Task.EXECUTION_TIME[2][3] = 18;
-        Task.EXECUTION_TIME[3][1] = 11;
-        Task.EXECUTION_TIME[3][2] = 13;
-        Task.EXECUTION_TIME[3][3] = 19;
-        Task.EXECUTION_TIME[4][1] = 13;
-        Task.EXECUTION_TIME[4][2] = 8;
-        Task.EXECUTION_TIME[4][3] = 17;
-        Task.EXECUTION_TIME[5][1] = 12;
-        Task.EXECUTION_TIME[5][2] = 13;
-        Task.EXECUTION_TIME[5][3] = 10;
-        Task.EXECUTION_TIME[6][1] = 13;
-        Task.EXECUTION_TIME[6][2] = 16;
-        Task.EXECUTION_TIME[6][3] = 9;
-        Task.EXECUTION_TIME[7][1] = 7;
-        Task.EXECUTION_TIME[7][2] = 15;
-        Task.EXECUTION_TIME[7][3] = 11;
-        Task.EXECUTION_TIME[8][1] = 5;
-        Task.EXECUTION_TIME[8][2] = 11;
-        Task.EXECUTION_TIME[8][3] = 14;
-        Task.EXECUTION_TIME[9][1] = 18;
-        Task.EXECUTION_TIME[9][2] = 12;
-        Task.EXECUTION_TIME[9][3] = 20;
-        Task.EXECUTION_TIME[10][1] = 21;
-        Task.EXECUTION_TIME[10][2] = 7;
-        Task.EXECUTION_TIME[10][3] = 16;
+        Task.EXECUTION_TIME[1][1] = BigDecimal.valueOf(14);
+        Task.EXECUTION_TIME[1][2] = BigDecimal.valueOf(16);
+        Task.EXECUTION_TIME[1][3] = BigDecimal.valueOf(9);
+        Task.EXECUTION_TIME[2][1] = BigDecimal.valueOf(13);
+        Task.EXECUTION_TIME[2][2] = BigDecimal.valueOf(19);
+        Task.EXECUTION_TIME[2][3] = BigDecimal.valueOf(18);
+        Task.EXECUTION_TIME[3][1] = BigDecimal.valueOf(11);
+        Task.EXECUTION_TIME[3][2] = BigDecimal.valueOf(13);
+        Task.EXECUTION_TIME[3][3] = BigDecimal.valueOf(19);
+        Task.EXECUTION_TIME[4][1] = BigDecimal.valueOf(13);
+        Task.EXECUTION_TIME[4][2] = BigDecimal.valueOf(8);
+        Task.EXECUTION_TIME[4][3] = BigDecimal.valueOf(17);
+        Task.EXECUTION_TIME[5][1] = BigDecimal.valueOf(12);
+        Task.EXECUTION_TIME[5][2] = BigDecimal.valueOf(13);
+        Task.EXECUTION_TIME[5][3] = BigDecimal.valueOf(10);
+        Task.EXECUTION_TIME[6][1] = BigDecimal.valueOf(13);
+        Task.EXECUTION_TIME[6][2] = BigDecimal.valueOf(16);
+        Task.EXECUTION_TIME[6][3] = BigDecimal.valueOf(9);
+        Task.EXECUTION_TIME[7][1] = BigDecimal.valueOf(7);
+        Task.EXECUTION_TIME[7][2] = BigDecimal.valueOf(15);
+        Task.EXECUTION_TIME[7][3] = BigDecimal.valueOf(11);
+        Task.EXECUTION_TIME[8][1] = BigDecimal.valueOf(5);
+        Task.EXECUTION_TIME[8][2] = BigDecimal.valueOf(11);
+        Task.EXECUTION_TIME[8][3] = BigDecimal.valueOf(14);
+        Task.EXECUTION_TIME[9][1] = BigDecimal.valueOf(18);
+        Task.EXECUTION_TIME[9][2] = BigDecimal.valueOf(12);
+        Task.EXECUTION_TIME[9][3] = BigDecimal.valueOf(20);
+        Task.EXECUTION_TIME[10][1] = BigDecimal.valueOf(21);
+        Task.EXECUTION_TIME[10][2] = BigDecimal.valueOf(7);
+        Task.EXECUTION_TIME[10][3] = BigDecimal.valueOf(16);
 
-        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(2),18));
-        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(3),12));
-        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(4),9));
-        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(5),11));
-        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(6),14));
-        directGraph.addEdge(new Edge<>(taskMap.get(2), taskMap.get(8),19));
-        directGraph.addEdge(new Edge<>(taskMap.get(2), taskMap.get(9),16));
-        directGraph.addEdge(new Edge<>(taskMap.get(3), taskMap.get(7),23));
-        directGraph.addEdge(new Edge<>(taskMap.get(4), taskMap.get(8),27));
-        directGraph.addEdge(new Edge<>(taskMap.get(4), taskMap.get(9),23));
-        directGraph.addEdge(new Edge<>(taskMap.get(5), taskMap.get(9),13));
-        directGraph.addEdge(new Edge<>(taskMap.get(6), taskMap.get(8),15));
-        directGraph.addEdge(new Edge<>(taskMap.get(7), taskMap.get(10),17));
-        directGraph.addEdge(new Edge<>(taskMap.get(8), taskMap.get(10),11));
-        directGraph.addEdge(new Edge<>(taskMap.get(9), taskMap.get(10),13));
+        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(2),new BigDecimal("18")));
+        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(3),new BigDecimal("12")));
+        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(4),new BigDecimal("9")));
+        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(5),new BigDecimal("11")));
+        directGraph.addEdge(new Edge<>(taskMap.get(1), taskMap.get(6),new BigDecimal("14")));
+        directGraph.addEdge(new Edge<>(taskMap.get(2), taskMap.get(8),new BigDecimal("19")));
+        directGraph.addEdge(new Edge<>(taskMap.get(2), taskMap.get(9),new BigDecimal("16")));
+        directGraph.addEdge(new Edge<>(taskMap.get(3), taskMap.get(7),new BigDecimal("23")));
+        directGraph.addEdge(new Edge<>(taskMap.get(4), taskMap.get(8),new BigDecimal("27")));
+        directGraph.addEdge(new Edge<>(taskMap.get(4), taskMap.get(9),new BigDecimal("23")));
+        directGraph.addEdge(new Edge<>(taskMap.get(5), taskMap.get(9),new BigDecimal("13")));
+        directGraph.addEdge(new Edge<>(taskMap.get(6), taskMap.get(8),new BigDecimal("15")));
+        directGraph.addEdge(new Edge<>(taskMap.get(7), taskMap.get(10),new BigDecimal("17")));
+        directGraph.addEdge(new Edge<>(taskMap.get(8), taskMap.get(10),new BigDecimal("11")));
+        directGraph.addEdge(new Edge<>(taskMap.get(9), taskMap.get(10),new BigDecimal("13")));
     }
 
 
@@ -213,11 +225,13 @@ public class Main {
 //            nodeMap.put(i, node);
 //        }
 
-        Node node1 = new Node(1, 0.26, 1, 0.01, 0, 0.03, 0.8, 2.9);
-        Node node2 = new Node(2, 0.26, 1, 0.01, 0, 0.04, 0.8, 2.5);
-        Node node3 = new Node(3, 0.29, 1, 0.01, 0, 0.07, 1.0, 2.5);
+        Node node1 = new Node(1, new BigDecimal("0.26"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.03"), new BigDecimal("0.8"), new BigDecimal("2.9"));
+        Node node2 = new Node(2, new BigDecimal("0.26"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.04"), new BigDecimal("0.8"), new BigDecimal("2.5"));
+        Node node3 = new Node(3, new BigDecimal("0.29"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.07"), new BigDecimal("1"), new BigDecimal("2.5"));
         nodeMap.put(1, node1);
         nodeMap.put(2, node2);
         nodeMap.put(3, node3);
     }
+
+
 }

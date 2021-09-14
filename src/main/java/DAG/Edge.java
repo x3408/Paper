@@ -1,6 +1,6 @@
 package DAG;
 
-import java.util.Objects;
+import java.math.BigDecimal;
 
 public class Edge<V> {
 
@@ -20,9 +20,9 @@ public class Edge<V> {
      * 权重
      * @since 0.0.2
      */
-    private double weight;
+    private BigDecimal weight;
 
-    public Edge(V from, V to, double weight) {
+    public Edge(V from, V to, BigDecimal weight) {
         this.from = from;
         this.to = to;
         this.weight = weight;
@@ -44,11 +44,11 @@ public class Edge<V> {
         this.to = to;
     }
 
-    public double getWeight() {
+    public BigDecimal getWeight() {
         return weight;
     }
 
-    public void setWeight(double weight) {
+    public void setWeight(BigDecimal weight) {
         this.weight = weight;
     }
 
@@ -59,24 +59,5 @@ public class Edge<V> {
                 ", to=" + to +
                 ", weight=" + weight +
                 '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Edge<?> edge = (Edge<?>) o;
-        return Double.compare(edge.weight, weight) == 0 &&
-                Objects.equals(from, edge.from) &&
-                Objects.equals(to, edge.to);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(from, to, weight);
     }
 }

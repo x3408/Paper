@@ -11,8 +11,8 @@ public class Point {
 
     public Point(Task task) {
         this.task = task;
-        this.x = task.getMemory();
-        this.y = task.getCpu();
+        this.x = task.getMemory().doubleValue();
+        this.y = task.getCpu().doubleValue();
     }
 
     public Point(double x, double y) {
