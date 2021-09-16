@@ -4,6 +4,7 @@ import entity.Node;
 import entity.Task;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
 
@@ -20,8 +21,9 @@ public class Energy {
         minPreEnergy[0] = new BigDecimal("9999999999");
         nodeMap.forEach((nodeId, node) -> {
 //            double fee = Math.sqrt(node.getPind() / ((node.getM() - 1) * node.getCef())) * node.getM();
-//            BigDecimal fee = node.getPind().divide((node.getM().subtract(BigDecimal.ONE).multiply(node.getCef())),8,RoundingMode.HALF_UP).sqrt(new MathContext(2)).multiply(node.getM());
-            minPreEnergy[0] = minPreEnergy[0].min(BigDecimal.valueOf(calculateTaskEnergy(task, node, node.getMinFrequency())));
+            BigDecimal fee = node.getPind().divide((node.getM().subtract(BigDecimal.ONE).multiply(node.getCef())),8,RoundingMode.HALF_UP).sqrt(new MathContext(2)).multiply(node.getM());
+            BigDecimal lowFrequency = node.getMinFrequency().compareTo(fee)>0?node.getMinFrequency():fee;
+            minPreEnergy[0] = minPreEnergy[0].min(BigDecimal.valueOf(calculateTaskEnergy(task, node, lowFrequency)));
         });
         task.setMinPreEnergy(minPreEnergy[0]);
     }

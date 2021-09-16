@@ -26,6 +26,7 @@ public class Node {
      private BigDecimal Pind;
      private BigDecimal Cef;
      private BigDecimal M;
+     private int type;
 
      public void getSuitableNodeforTask(BigDecimal applicationEnergyConstraint, Map<Integer, Task> taskMap, Map<Integer, Node> nodeMap, IDirectGraph<Task> directGraph) {
           ArrayList<Integer> taskQue = new ArrayList<>();
@@ -58,9 +59,40 @@ public class Node {
                          }
                     }
                }
-               task.setEFT(AFT);
-               task.setExecuteNode(executeNode);
                assert executeNode != null;
+               task.setEFT(AFT);
+               // 设置备用能耗最低节点
+               task.setExecuteNode(executeNode);
+               executeNode.setAvailableTime(AFT);
+               task.setFrequency(executeFrequency);
+               task.setFinalEnergy(energyConsumption);
+               // 尝试使用类型一致节点
+               AFT = new BigDecimal("9999999999");
+               executeNode = null;
+               executeFrequency = null;
+               energyConsumption = null;
+               for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
+                    Node node = nodeEntry.getValue();
+                    if (node.getType()!=task.getType()) continue;
+                    // 遍历每个频率
+                    for (BigDecimal frequency=node.getMinFrequency(); frequency.compareTo(node.getMaxFrequency())<=0; frequency = frequency.add(node.getAccuracy())) {
+                         double realEnergy = Energy.calculateTaskEnergy(task, node, frequency);
+                         if (BigDecimal.valueOf(realEnergy).compareTo(task.getEnergyConstraint()) == 1) continue; // 过滤掉不符合规则的
+                         // calculate EFT
+                         EFT = ScheduleLength.calculateEarlierFinishTime(task, node, frequency, directGraph);
+                         // 若EFT小于AFT 则任务选择在该节点上执行
+                         if (EFT.compareTo(AFT) == -1) {
+                              AFT = EFT;
+                              executeNode = node;
+                              executeFrequency = frequency;
+                              energyConsumption = BigDecimal.valueOf(realEnergy);
+                         }
+                    }
+               }
+               if (executeNode==null) continue;
+               task.setEFT(AFT);
+               // 设置备用能耗最低节点
+               task.setExecuteNode(executeNode);
                executeNode.setAvailableTime(AFT);
                task.setFrequency(executeFrequency);
                task.setFinalEnergy(energyConsumption);
@@ -86,6 +118,7 @@ public class Node {
           energyConstraint = task.getMinPreEnergy().max(energyConstraint);
           energyConstraint = task.getMaxPreEnergy().min(energyConstraint);
           task.setEnergyConstraint(energyConstraint);
+          // sout
           System.out.print(task.getEnergyConstraint().setScale(2, RoundingMode.HALF_UP) + "   ");
      }
 }

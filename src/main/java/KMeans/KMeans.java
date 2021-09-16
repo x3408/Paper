@@ -61,7 +61,7 @@ public class KMeans {
         for (int i = 0; i < clusters.size(); i++) {
             List<Point> lists = clusters.get(i);
             for (Point list : lists) {
-                list.getTask().setCategory(i);
+                list.getTask().setType(i);
             }
         }
         show(centerPoints, clusters);

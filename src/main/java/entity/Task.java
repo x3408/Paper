@@ -14,7 +14,7 @@ public class Task {
     private BigDecimal rankScore;                           // 优先级分数
     private BigDecimal cpu;                                 // 任务cpu要求
     private BigDecimal memory;                              // 任务IO要求
-    private int category;                               // 任务所属分类0:CPU 1:IO 2:COMM
+    private int type;                               // 任务所属分类0:CPU 1:IO 2:COMM
     private BigDecimal minPreEnergy;                        // 任务最小预分配能耗
     private BigDecimal maxPreEnergy;                        // 任务最大预分配能耗
     private BigDecimal finalEnergy;                         // 最终任务能耗

@@ -1,9 +1,11 @@
 import DAG.Edge;
 import DAG.IDirectGraph;
 import DAG.ListDirectGraph;
+import KMeans.KMeans;
 import entity.Node;
 import entity.Task;
 import utils.Energy;
+import utils.ScheduleLength;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,7 +33,7 @@ public class Main {
         // 将任务排序
         OrderTasks();
         // 将任务分类
-//        new KMeans(taskMap, 3).doKMeans();
+        new KMeans(taskMap, 3).doKMeans();
         // 计算子任务能耗约束
         Energy energy = new Energy();
 //        energy.calculateTaskEnergyConstraint(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap);
@@ -43,6 +45,28 @@ public class Main {
         // 计算调度时间SL(G)、E(G)
         calculateApplicationEnergyConsumption();
         calculateApplicationScheduleLength();
+
+        compareWithOrigin();
+        calculateApplicationEnergyConsumption();
+        calculateApplicationScheduleLength();
+
+    }
+
+    private static void compareWithOrigin() {
+        for (Map.Entry<Integer, Task> taskEntry : taskMap.entrySet()) {
+            Task task = taskEntry.getValue();
+            // 遍历节点尝试找到最小能耗的节点与频率
+            for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
+                Node node = nodeEntry.getValue();
+                if (node.getType()!=task.getType()) continue;
+                task.setExecuteNode(node);
+                double finalEnergy = Energy.calculateTaskEnergy(task, node, node.getMinFrequency());
+                BigDecimal EFT = ScheduleLength.calculateEarlierFinishTime(task, node, node.getMinFrequency(), directGraph);
+                node.setAvailableTime(EFT);
+                task.setEFT(EFT);
+                task.setFinalEnergy(BigDecimal.valueOf(finalEnergy));
+            }
+        }
     }
 
     private static void calculateApplicationScheduleLength() {
@@ -51,7 +75,7 @@ public class Main {
         applicationScheduleLength = taskMap.get(taskMap.size()).getEFT();
         taskMap.forEach((taskId, task) -> System.out.print(decimalFormat.format(task.getEFT()) + "  "));
         System.out.println();
-        System.out.println("应用最终调度长度: " + decimalFormat.format(applicationScheduleLength));
+        System.out.println("应用最终调度长度: " + applicationScheduleLength);
     }
 
     private static void calculateApplicationEnergyConsumption() {
@@ -69,7 +93,7 @@ public class Main {
             System.out.print(taskId + ": " + task.getFrequency().setScale(2, RoundingMode.HALF_UP) + "  ");
         });
         System.out.println();
-        System.out.println("能耗上限: "+ APPLICATION_ENERGY_CONSTRAINT+ "\t应用最终能耗: " + decimalFormat.format(applicationEnergy));
+        System.out.println("能耗上限: "+ APPLICATION_ENERGY_CONSTRAINT+ "\t应用最终能耗: " + applicationEnergy);
     }
 
     /**
@@ -225,9 +249,9 @@ public class Main {
 //            nodeMap.put(i, node);
 //        }
 
-        Node node1 = new Node(1, new BigDecimal("0.26"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.03"), new BigDecimal("0.8"), new BigDecimal("2.9"));
-        Node node2 = new Node(2, new BigDecimal("0.26"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.04"), new BigDecimal("0.8"), new BigDecimal("2.5"));
-        Node node3 = new Node(3, new BigDecimal("0.29"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.07"), new BigDecimal("1"), new BigDecimal("2.5"));
+        Node node1 = new Node(1, new BigDecimal("0.26"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.03"), new BigDecimal("0.8"), new BigDecimal("2.9"),0);
+        Node node2 = new Node(2, new BigDecimal("0.26"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.04"), new BigDecimal("0.8"), new BigDecimal("2.5"),1);
+        Node node3 = new Node(3, new BigDecimal("0.29"), new BigDecimal("1"), new BigDecimal("0.01"), new BigDecimal("0"), new BigDecimal("0.07"), new BigDecimal("1"), new BigDecimal("2.5"),2);
         nodeMap.put(1, node1);
         nodeMap.put(2, node2);
         nodeMap.put(3, node3);
