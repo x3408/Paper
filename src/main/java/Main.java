@@ -50,6 +50,25 @@ public class Main {
         calculateApplicationEnergyConsumption();
         calculateApplicationScheduleLength();
 
+        compareWithRandom();
+
+    }
+
+    private static void compareWithRandom() {
+        for (Map.Entry<Integer, Task> taskEntry : taskMap.entrySet()) {
+            Task task = taskEntry.getValue();
+            // 遍历节点尝试找到最小能耗的节点与频率
+            for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
+                Node node = nodeEntry.getValue();
+                if (node.getType()!=task.getType()) continue;
+                task.setExecuteNode(node);
+                double finalEnergy = Energy.calculateTaskEnergy(task, node, node.getMinFrequency());
+                BigDecimal EFT = ScheduleLength.calculateEarlierFinishTime(task, node, node.getMinFrequency(), directGraph);
+                node.setAvailableTime(EFT);
+                task.setEFT(EFT);
+                task.setFinalEnergy(BigDecimal.valueOf(finalEnergy));
+            }
+        }
     }
 
     private static void compareWithOrigin() {
