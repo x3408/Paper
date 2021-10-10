@@ -22,8 +22,10 @@ public class Energy {
         nodeMap.forEach((nodeId, node) -> {
 //            double fee = Math.sqrt(node.getPind() / ((node.getM() - 1) * node.getCef())) * node.getM();
             BigDecimal fee = node.getPind().divide((node.getM().subtract(BigDecimal.ONE).multiply(node.getCef())),8,RoundingMode.HALF_UP).sqrt(new MathContext(2)).multiply(node.getM());
+            // !!! 使用fee会得到更好的效果
             BigDecimal lowFrequency = node.getMinFrequency().compareTo(fee)>0?node.getMinFrequency():fee;
             minPreEnergy[0] = minPreEnergy[0].min(BigDecimal.valueOf(calculateTaskEnergy(task, node, lowFrequency)));
+//            minPreEnergy[0] = minPreEnergy[0].min(BigDecimal.valueOf(calculateTaskEnergy(task, node, node.getMinFrequency())));
         });
         task.setMinPreEnergy(minPreEnergy[0]);
     }
@@ -72,6 +74,13 @@ public class Energy {
             calculateTaskMaxPreEnergy(task);
             System.out.print(taskId+": "+task.getMaxPreEnergy().setScale(2, RoundingMode.HALF_UP) + "    ");
         });
+
+        taskMap.forEach((taskId, task) -> {
+            task.setAverageEnergy(task.getMinPreEnergy().add(task.getMaxPreEnergy()).divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP));
+        });
         System.out.println();
+    }
+
+    public void calculateApplicationEnergyBound(Map<Integer, Task> taskMap) {
     }
 }

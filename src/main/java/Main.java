@@ -5,6 +5,7 @@ import KMeans.KMeans;
 import entity.Node;
 import entity.Task;
 import utils.Energy;
+import utils.ExcelUtil;
 import utils.ScheduleLength;
 
 import java.math.BigDecimal;
@@ -26,67 +27,56 @@ public class Main {
 
     public static BigDecimal applicationEnergy = new BigDecimal("0");
     public static BigDecimal applicationScheduleLength = new BigDecimal("0");
+
     public static void main(String[] args) {
         // 初始化
         initTaskAndDAG();
         initVirtualMachine();
+
+        // 选择调度算法
+        StartWithMyAlgorithm();
+
+    }
+
+    private static void StartWithMyAlgorithm() {
         // 将任务排序
         OrderTasks();
         // 将任务分类
         new KMeans(taskMap, 3).doKMeans();
         // 计算子任务能耗约束
         Energy energy = new Energy();
-//        energy.calculateTaskEnergyConstraint(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap);
+        // 计算全局最大、最小能耗上下限与平均全局能耗
         energy.calculateTaskPreEnergy(taskMap, nodeMap);
+
         // 计算任务在不同处理器的不同频率上的执行能耗，满足条件后再计算EFT
         Node node = new Node();
-//        node.getSuitableNode(taskMap, nodeMap, directGraph);
         node.getSuitableNodeforTask(APPLICATION_ENERGY_CONSTRAINT, taskMap, nodeMap, directGraph);
         // 计算调度时间SL(G)、E(G)
         calculateApplicationEnergyConsumption();
         calculateApplicationScheduleLength();
 
-        compareWithOrigin();
+        System.out.println("------------------------------------------------------------------------------------------");
+    }
+
+    private static void StartWithRandom() {
+        System.out.println("----------------- 随机算法 -----------------------");
+        for (Map.Entry<Integer, Task> taskEntry : taskMap.entrySet()) {
+            Task task = taskEntry.getValue();
+            for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
+                Node node = nodeEntry.getValue();
+                task.setExecuteNode(node);
+                double finalEnergy = Energy.calculateTaskEnergy(task, node, node.getMinFrequency());
+                BigDecimal EFT = ScheduleLength.calculateEarlierFinishTime(task, node, node.getMinFrequency(), directGraph);
+                node.setAvailableTime(EFT);
+                task.setEFT(EFT);
+                task.setFinalEnergy(BigDecimal.valueOf(finalEnergy));
+                break;
+            }
+        }
         calculateApplicationEnergyConsumption();
         calculateApplicationScheduleLength();
-
-        compareWithRandom();
-
     }
 
-    private static void compareWithRandom() {
-        for (Map.Entry<Integer, Task> taskEntry : taskMap.entrySet()) {
-            Task task = taskEntry.getValue();
-            // 遍历节点尝试找到最小能耗的节点与频率
-            for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
-                Node node = nodeEntry.getValue();
-                if (node.getType()!=task.getType()) continue;
-                task.setExecuteNode(node);
-                double finalEnergy = Energy.calculateTaskEnergy(task, node, node.getMinFrequency());
-                BigDecimal EFT = ScheduleLength.calculateEarlierFinishTime(task, node, node.getMinFrequency(), directGraph);
-                node.setAvailableTime(EFT);
-                task.setEFT(EFT);
-                task.setFinalEnergy(BigDecimal.valueOf(finalEnergy));
-            }
-        }
-    }
-
-    private static void compareWithOrigin() {
-        for (Map.Entry<Integer, Task> taskEntry : taskMap.entrySet()) {
-            Task task = taskEntry.getValue();
-            // 遍历节点尝试找到最小能耗的节点与频率
-            for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
-                Node node = nodeEntry.getValue();
-                if (node.getType()!=task.getType()) continue;
-                task.setExecuteNode(node);
-                double finalEnergy = Energy.calculateTaskEnergy(task, node, node.getMinFrequency());
-                BigDecimal EFT = ScheduleLength.calculateEarlierFinishTime(task, node, node.getMinFrequency(), directGraph);
-                node.setAvailableTime(EFT);
-                task.setEFT(EFT);
-                task.setFinalEnergy(BigDecimal.valueOf(finalEnergy));
-            }
-        }
-    }
 
     private static void calculateApplicationScheduleLength() {
         System.out.println("------------------------ 全局调度长度 ---------------------------");
@@ -95,10 +85,11 @@ public class Main {
         taskMap.forEach((taskId, task) -> System.out.print(decimalFormat.format(task.getEFT()) + "  "));
         System.out.println();
         System.out.println("应用最终调度长度: " + applicationScheduleLength);
+
+        ExcelUtil.writeToTable(taskMap, applicationScheduleLength.toString(), applicationEnergy.toString());
     }
 
     private static void calculateApplicationEnergyConsumption() {
-        System.out.println();
         System.out.println("------------------------ 全局能耗 ------------------------------");
         System.out.print("能耗：");
         DecimalFormat decimalFormat = new DecimalFormat("0.00");

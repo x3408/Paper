@@ -97,6 +97,7 @@ public class Node {
                task.setFrequency(executeFrequency);
                task.setFinalEnergy(energyConsumption);
           }
+          System.out.println();
      }
 
      private void calculateRealEnergyConstraintForTask(BigDecimal applicationEnergyConstraint, Task task, HashMap<Integer, Task> taskMap, ArrayList<Integer> taskQue) {

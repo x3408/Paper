@@ -10,6 +10,7 @@ import java.util.Objects;
 @Builder
 public class Task {
     private int id;
+    private BigDecimal averageEnergy;                       // ISAECC所使用的平局能耗
     private BigDecimal averageExecutionTime;                // 任务在节点上的平均执行时长
     private BigDecimal rankScore;                           // 优先级分数
     private BigDecimal cpu;                                 // 任务cpu要求
