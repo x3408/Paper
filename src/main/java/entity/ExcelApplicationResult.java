@@ -13,21 +13,9 @@ import org.apache.poi.ss.usermodel.FillPatternType;
 @HeadFontStyle(fontHeightInPoints = 11)
 @ColumnWidth(15)
 @HeadRowHeight(20)
-public class ExcelResult {
-    @ExcelProperty("任务序号")
-    private int taskId;
-    @ExcelProperty("能耗约束")
-    private String taskEnergyConstraint;
-    @ExcelProperty("执行频率")
-    private String taskFrequency;
-    @ExcelProperty("执行节点")
-    private int taskExecuteNode;
-    @ExcelProperty("任务能耗")
-    private String taskEnergy;
-    @ExcelProperty("EFT(ni)")
-    private String EFT;
-    @ExcelProperty("E(G)")
+public class ExcelApplicationResult {
+    @ExcelProperty("全局能耗")
     private String finalEnergy;
-    @ExcelProperty("SL(G)")
+    @ExcelProperty("调度长度")
     private String scheduleLength;
 }

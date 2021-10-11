@@ -42,30 +42,30 @@ public class Node {
                // 计算当前任务能耗约束
                calculateRealEnergyConstraintForTask(applicationEnergyConstraint, task, new HashMap<>(taskMap), taskQue);
                // 遍历节点尝试找到最小能耗的节点与频率
-               for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
-                    Node node = nodeEntry.getValue();
-                    // 遍历每个频率
-                    for (BigDecimal frequency=node.getMinFrequency(); frequency.compareTo(node.getMaxFrequency())<=0; frequency = frequency.add(node.getAccuracy())) {
-                         double realEnergy = Energy.calculateTaskEnergy(task, node, frequency);
-                         if (BigDecimal.valueOf(realEnergy).compareTo(task.getEnergyConstraint()) == 1) continue; // 过滤掉不符合规则的
-                         // calculate EFT
-                         EFT = ScheduleLength.calculateEarlierFinishTime(task, node, frequency, directGraph);
-                         // 若EFT小于AFT 则任务选择在该节点上执行
-                         if (EFT.compareTo(AFT) == -1) {
-                              AFT = EFT;
-                              executeNode = node;
-                              executeFrequency = frequency;
-                              energyConsumption = BigDecimal.valueOf(realEnergy);
-                         }
-                    }
-               }
-               assert executeNode != null;
-               task.setEFT(AFT);
-               // 设置备用能耗最低节点
-               task.setExecuteNode(executeNode);
-               executeNode.setAvailableTime(AFT);
-               task.setFrequency(executeFrequency);
-               task.setFinalEnergy(energyConsumption);
+//               for (Map.Entry<Integer, Node> nodeEntry : nodeMap.entrySet()) {
+//                    Node node = nodeEntry.getValue();
+//                    // 遍历每个频率
+//                    for (BigDecimal frequency=node.getMinFrequency(); frequency.compareTo(node.getMaxFrequency())<=0; frequency = frequency.add(node.getAccuracy())) {
+//                         double realEnergy = Energy.calculateTaskEnergy(task, node, frequency);
+//                         if (BigDecimal.valueOf(realEnergy).compareTo(task.getEnergyConstraint()) == 1) continue; // 过滤掉不符合规则的
+//                         // calculate EFT
+//                         EFT = ScheduleLength.calculateEarlierFinishTime(task, node, frequency, directGraph);
+//                         // 若EFT小于AFT 则任务选择在该节点上执行
+//                         if (EFT.compareTo(AFT) == -1) {
+//                              AFT = EFT;
+//                              executeNode = node;
+//                              executeFrequency = frequency;
+//                              energyConsumption = BigDecimal.valueOf(realEnergy);
+//                         }
+//                    }
+//               }
+//               assert executeNode != null;
+//               task.setEFT(AFT);
+//               // 设置备用能耗最低节点
+//               task.setExecuteNode(executeNode);
+//               executeNode.setAvailableTime(AFT);
+//               task.setFrequency(executeFrequency);
+//               task.setFinalEnergy(energyConsumption);
                // 尝试使用类型一致节点
                AFT = new BigDecimal("9999999999");
                executeNode = null;
@@ -77,7 +77,7 @@ public class Node {
                     // 遍历每个频率
                     for (BigDecimal frequency=node.getMinFrequency(); frequency.compareTo(node.getMaxFrequency())<=0; frequency = frequency.add(node.getAccuracy())) {
                          double realEnergy = Energy.calculateTaskEnergy(task, node, frequency);
-                         if (BigDecimal.valueOf(realEnergy).compareTo(task.getEnergyConstraint()) == 1) continue; // 过滤掉不符合规则的
+//                         if (BigDecimal.valueOf(realEnergy).compareTo(task.getEnergyConstraint()) == 1) continue; // 过滤掉不符合规则的
                          // calculate EFT
                          EFT = ScheduleLength.calculateEarlierFinishTime(task, node, frequency, directGraph);
                          // 若EFT小于AFT 则任务选择在该节点上执行
